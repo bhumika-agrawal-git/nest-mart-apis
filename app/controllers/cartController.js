@@ -110,7 +110,51 @@ export const getCart = async (req, res) => {
     );
   }
 };
+// ==========================
+// Get Cart By ID
+// ==========================
+export const getCartById = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const cart = await Cart.findOne({
+      _id: id,
+      user_id: req.user._id,
+    })
+      .populate("product_id")
+      .populate(
+        "user_id",
+        "first_name last_name email"
+      );
+
+    if (!cart) {
+      return responseHandler(
+        res,
+        404,
+        false,
+        "Cart item not found."
+      );
+    }
+
+    return responseHandler(
+      res,
+      200,
+      true,
+      "Cart item fetched successfully.",
+      cart
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    return responseHandler(
+      res,
+      500,
+      false,
+      "Internal Server Error"
+    );
+  }
+};
 // ==========================
 // Update Cart Quantity
 // ==========================
