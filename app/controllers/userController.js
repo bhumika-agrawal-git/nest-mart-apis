@@ -8,6 +8,7 @@ import {
 } from "../utils/cloudinaryHelper.js";
 import { responseHandler } from "../utils/responseHandler.js";
 import { getPagination } from "../utils/pagination.js";
+import { sendRegistrationMail } from "../utils/sendMail.js";
 // =========================
 // Register User
 // =========================
@@ -71,7 +72,18 @@ export const registerUser = async (req, res) => {
       phone_no,
       role,
     });
-
+    // Send Welcome Mail
+try {
+  await sendRegistrationMail(
+    `${user.first_name} ${user.last_name}`,
+    user.email
+  );
+} catch (mailError) {
+  console.error(
+    "Email Error:",
+    mailError.message
+  );
+}
     return responseHandler(
       res,
       201,
