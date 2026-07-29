@@ -7,7 +7,7 @@ import Address from "../models/Address.js";
 import { responseHandler } from "../utils/responseHandler.js";
 import { getPagination } from "../utils/pagination.js";
 import razorpay from "../configs/razorpay.js";
-
+import { sendPushNotification } from "../utils/sendNotification.js";
 
 // =================================================
 // GENERATE ORDER NUMBER
@@ -46,6 +46,437 @@ const generateOrderNumber = async () => {
 // =================================================
 // CREATE ORDER
 // =================================================
+// export const createOrder = async (req, res) => {
+//   try {
+//     const user_id = req.user._id;
+
+//     const {
+//       address_id,
+//       cart_id,
+//       payment_method = "COD",
+//     } = req.body;
+
+
+//     // =================================================
+//     // 1. VALIDATE CART IDs
+//     // =================================================
+
+//     if (
+//       !cart_id ||
+//       !Array.isArray(cart_id) ||
+//       cart_id.length === 0
+//     ) {
+//       return responseHandler(
+//         res,
+//         400,
+//         false,
+//         "cart_id must be a non-empty array."
+//       );
+//     }
+
+
+//     // =================================================
+//     // 2. CHECK ADDRESS
+//     // =================================================
+
+//     const address =
+//       await Address.findOne({
+//         _id: address_id,
+//         user_id,
+//       });
+
+
+//     if (!address) {
+//       return responseHandler(
+//         res,
+//         404,
+//         false,
+//         "Address not found."
+//       );
+//     }
+
+
+//     // =================================================
+//     // 3. GET SELECTED CART ITEMS
+//     // =================================================
+
+//     const cartItems =
+//       await Cart.find({
+//         _id: {
+//           $in: cart_id,
+//         },
+
+//         user_id,
+
+//       }).populate(
+//         "product_id"
+//       );
+
+
+//     // =================================================
+//     // 4. CHECK ALL CART ITEMS EXIST
+//     // =================================================
+
+//     if (
+//       cartItems.length !==
+//       cart_id.length
+//     ) {
+//       return responseHandler(
+//         res,
+//         404,
+//         false,
+//         "One or more selected cart items were not found."
+//       );
+//     }
+
+
+//     // =================================================
+//     // 5. CHECK DELETED PRODUCTS
+//     // =================================================
+
+//     const invalidProduct =
+//       cartItems.find(
+//         (item) =>
+//           !item.product_id
+//       );
+
+
+//     if (invalidProduct) {
+//       return responseHandler(
+//         res,
+//         400,
+//         false,
+//         "One or more selected products are no longer available."
+//       );
+//     }
+
+
+//     // =================================================
+//     // 6. CALCULATE SUBTOTAL
+//     // =================================================
+
+//     let subtotal = 0;
+
+
+//     cartItems.forEach(
+//       (item) => {
+
+//         subtotal +=
+//           item.product_id.price *
+//           item.quantity;
+
+//       }
+//     );
+
+
+//     const discount = 0;
+
+//     const delivery_charge = 40;
+
+//     const tax = 0;
+
+
+//     const total_amount =
+//       subtotal -
+//       discount +
+//       delivery_charge +
+//       tax;
+
+
+//     // =================================================
+//     // 7. GENERATE ORDER NUMBER
+//     // =================================================
+
+//     const order_number =
+//       await generateOrderNumber();
+
+
+//     // =================================================
+//     // 8. CREATE RAZORPAY ORDER
+//     // =================================================
+
+//     let razorpay_order_id =
+//       null;
+
+
+//     if (
+//       payment_method ===
+//       "ONLINE"
+//     ) {
+
+//       const razorpayOrder =
+//         await razorpay.orders.create({
+
+//           amount:
+//             Math.round(
+//               total_amount * 100
+//             ),
+
+//           currency:
+//             "INR",
+
+//           receipt:
+//             order_number,
+
+//           notes: {
+
+//             order_number,
+
+//             user_id:
+//               user_id.toString(),
+
+//             cart_ids:
+//               cart_id.join(","),
+
+//           },
+
+//         });
+
+
+//       razorpay_order_id =
+//         razorpayOrder.id;
+
+//     }
+
+
+//     // =================================================
+//     // 9. CREATE ORDER IN DATABASE
+//     // =================================================
+
+//     const order =
+//       await Order.create({
+
+//         order_number,
+
+//         user_id,
+
+
+//         user_details: {
+
+//           first_name:
+//             req.user.first_name,
+
+//           last_name:
+//             req.user.last_name,
+
+//           email:
+//             req.user.email,
+
+//           phone_no:
+//             req.user.phone_no,
+
+//         },
+
+
+//         address_id,
+
+
+//         address_details: {
+
+//           full_name:
+//             address.full_name,
+
+//           phone_no:
+//             address.phone_no,
+
+//           address_line:
+//             address.address_line_1,
+
+//           city:
+//             address.city,
+
+//           state:
+//             address.state,
+
+//           pincode:
+//             address.pincode,
+
+//         },
+
+
+//         finance_details: {
+
+//           subtotal,
+
+//           discount,
+
+//           delivery_charge,
+
+//           tax,
+
+//           total_amount,
+
+//         },
+
+
+//         payment_details: {
+
+//           payment_method,
+
+//           payment_status:
+//             "PENDING",
+
+//           razorpay_order_id,
+
+//           razorpay_payment_id:
+//             null,
+
+//         },
+
+
+//         order_status:
+//           "PENDING",
+
+//       });
+
+
+//     // =================================================
+//     // 10. CREATE MULTIPLE ORDER ITEMS
+//     // =================================================
+
+//     const orderItems =
+//       cartItems.map(
+//         (cartItem) => {
+
+//           const product =
+//             cartItem.product_id;
+
+
+//           return {
+
+//             order_id:
+//               order._id,
+
+//             cart_id:
+//               cartItem._id,
+
+//             product_id:
+//               product._id,
+
+//             product_name:
+//               product.product_name,
+
+//             price:
+//               product.price,
+
+//             quantity:
+//               cartItem.quantity,
+
+//             total_price:
+//               product.price *
+//               cartItem.quantity,
+
+//           };
+
+//         }
+//       );
+
+
+//     // =================================================
+//     // 11. SAVE ALL ORDER ITEMS
+//     // =================================================
+
+//     await OrderItem.insertMany(
+//       orderItems
+//     );
+
+
+//     // =================================================
+//     // 12. DELETE ONLY SELECTED CART ITEMS
+//     // =================================================
+
+//     await Cart.deleteMany({
+
+//       _id: {
+//         $in: cart_id,
+//       },
+
+//       user_id,
+
+//     });
+
+
+//     // =================================================
+//     // 13. RESPONSE
+//     // =================================================
+
+//     return responseHandler(
+
+//       res,
+
+//       201,
+
+//       true,
+
+//       payment_method ===
+//         "ONLINE"
+
+//         ? "Online order created successfully."
+
+//         : "COD order created successfully.",
+
+
+//       {
+
+//         // MongoDB order
+//         order,
+
+
+//         // Multiple order items
+//         items:
+//           orderItems,
+
+
+//         // Razorpay details
+//         ...(payment_method ===
+//           "ONLINE" && {
+
+//           razorpay: {
+
+//             razorpay_order_id,
+
+//             amount:
+//               Math.round(
+//                 total_amount * 100
+//               ),
+
+//             currency:
+//               "INR",
+
+//           },
+
+//         }),
+
+//       }
+
+//     );
+
+
+//   } catch (error) {
+
+//     console.error(
+//       "Create Order Error:",
+//       error
+//     );
+
+
+//     return responseHandler(
+
+//       res,
+
+//       500,
+
+//       false,
+
+//       "Internal Server Error",
+
+//       error.message
+
+//     );
+
+//   }
+
+// };
 export const createOrder = async (req, res) => {
   try {
     const user_id = req.user._id;
@@ -55,7 +486,6 @@ export const createOrder = async (req, res) => {
       cart_id,
       payment_method = "COD",
     } = req.body;
-
 
     // =================================================
     // 1. VALIDATE CART IDs
@@ -74,17 +504,14 @@ export const createOrder = async (req, res) => {
       );
     }
 
-
     // =================================================
     // 2. CHECK ADDRESS
     // =================================================
 
-    const address =
-      await Address.findOne({
-        _id: address_id,
-        user_id,
-      });
-
+    const address = await Address.findOne({
+      _id: address_id,
+      user_id,
+    });
 
     if (!address) {
       return responseHandler(
@@ -95,32 +522,20 @@ export const createOrder = async (req, res) => {
       );
     }
 
-
     // =================================================
     // 3. GET SELECTED CART ITEMS
     // =================================================
 
-    const cartItems =
-      await Cart.find({
-        _id: {
-          $in: cart_id,
-        },
-
-        user_id,
-
-      }).populate(
-        "product_id"
-      );
-
+    const cartItems = await Cart.find({
+      _id: { $in: cart_id },
+      user_id,
+    }).populate("product_id");
 
     // =================================================
     // 4. CHECK ALL CART ITEMS EXIST
     // =================================================
 
-    if (
-      cartItems.length !==
-      cart_id.length
-    ) {
+    if (cartItems.length !== cart_id.length) {
       return responseHandler(
         res,
         404,
@@ -129,17 +544,13 @@ export const createOrder = async (req, res) => {
       );
     }
 
-
     // =================================================
     // 5. CHECK DELETED PRODUCTS
     // =================================================
 
-    const invalidProduct =
-      cartItems.find(
-        (item) =>
-          !item.product_id
-      );
-
+    const invalidProduct = cartItems.find(
+      (item) => !item.product_id
+    );
 
     if (invalidProduct) {
       return responseHandler(
@@ -150,31 +561,19 @@ export const createOrder = async (req, res) => {
       );
     }
 
-
     // =================================================
     // 6. CALCULATE SUBTOTAL
     // =================================================
 
     let subtotal = 0;
 
-
-    cartItems.forEach(
-      (item) => {
-
-        subtotal +=
-          item.product_id.price *
-          item.quantity;
-
-      }
-    );
-
+    cartItems.forEach((item) => {
+      subtotal += item.product_id.price * item.quantity;
+    });
 
     const discount = 0;
-
     const delivery_charge = 40;
-
     const tax = 0;
-
 
     const total_amount =
       subtotal -
@@ -182,302 +581,162 @@ export const createOrder = async (req, res) => {
       delivery_charge +
       tax;
 
-
     // =================================================
     // 7. GENERATE ORDER NUMBER
     // =================================================
 
-    const order_number =
-      await generateOrderNumber();
-
+    const order_number = await generateOrderNumber();
 
     // =================================================
     // 8. CREATE RAZORPAY ORDER
     // =================================================
 
-    let razorpay_order_id =
-      null;
+    let razorpay_order_id = null;
 
-
-    if (
-      payment_method ===
-      "ONLINE"
-    ) {
-
+    if (payment_method === "ONLINE") {
       const razorpayOrder =
         await razorpay.orders.create({
-
-          amount:
-            Math.round(
-              total_amount * 100
-            ),
-
-          currency:
-            "INR",
-
-          receipt:
-            order_number,
-
+          amount: Math.round(total_amount * 100),
+          currency: "INR",
+          receipt: order_number,
           notes: {
-
             order_number,
-
-            user_id:
-              user_id.toString(),
-
-            cart_ids:
-              cart_id.join(","),
-
+            user_id: user_id.toString(),
+            cart_ids: cart_id.join(","),
           },
-
         });
 
-
-      razorpay_order_id =
-        razorpayOrder.id;
-
+      razorpay_order_id = razorpayOrder.id;
     }
 
-
     // =================================================
-    // 9. CREATE ORDER IN DATABASE
-    // =================================================
-
-    const order =
-      await Order.create({
-
-        order_number,
-
-        user_id,
-
-
-        user_details: {
-
-          first_name:
-            req.user.first_name,
-
-          last_name:
-            req.user.last_name,
-
-          email:
-            req.user.email,
-
-          phone_no:
-            req.user.phone_no,
-
-        },
-
-
-        address_id,
-
-
-        address_details: {
-
-          full_name:
-            address.full_name,
-
-          phone_no:
-            address.phone_no,
-
-          address_line:
-            address.address_line_1,
-
-          city:
-            address.city,
-
-          state:
-            address.state,
-
-          pincode:
-            address.pincode,
-
-        },
-
-
-        finance_details: {
-
-          subtotal,
-
-          discount,
-
-          delivery_charge,
-
-          tax,
-
-          total_amount,
-
-        },
-
-
-        payment_details: {
-
-          payment_method,
-
-          payment_status:
-            "PENDING",
-
-          razorpay_order_id,
-
-          razorpay_payment_id:
-            null,
-
-        },
-
-
-        order_status:
-          "PENDING",
-
-      });
-
-
-    // =================================================
-    // 10. CREATE MULTIPLE ORDER ITEMS
+    // 9. CREATE ORDER
     // =================================================
 
-    const orderItems =
-      cartItems.map(
-        (cartItem) => {
-
-          const product =
-            cartItem.product_id;
-
-
-          return {
-
-            order_id:
-              order._id,
-
-            cart_id:
-              cartItem._id,
-
-            product_id:
-              product._id,
-
-            product_name:
-              product.product_name,
-
-            price:
-              product.price,
-
-            quantity:
-              cartItem.quantity,
-
-            total_price:
-              product.price *
-              cartItem.quantity,
-
-          };
-
-        }
-      );
-
-
-    // =================================================
-    // 11. SAVE ALL ORDER ITEMS
-    // =================================================
-
-    await OrderItem.insertMany(
-      orderItems
-    );
-
-
-    // =================================================
-    // 12. DELETE ONLY SELECTED CART ITEMS
-    // =================================================
-
-    await Cart.deleteMany({
-
-      _id: {
-        $in: cart_id,
-      },
+    const order = await Order.create({
+      order_number,
 
       user_id,
 
+      user_details: {
+        first_name: req.user.first_name,
+        last_name: req.user.last_name,
+        email: req.user.email,
+        phone_no: req.user.phone_no,
+      },
+
+      address_id,
+
+      address_details: {
+        full_name: address.full_name,
+        phone_no: address.phone_no,
+        address_line: address.address_line_1,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+      },
+
+      finance_details: {
+        subtotal,
+        discount,
+        delivery_charge,
+        tax,
+        total_amount,
+      },
+
+      payment_details: {
+        payment_method,
+        payment_status: "PENDING",
+        razorpay_order_id,
+        razorpay_payment_id: null,
+      },
+
+      order_status: "PENDING",
     });
 
+    // =================================================
+    // 10. CREATE ORDER ITEMS
+    // =================================================
+
+    const orderItems = cartItems.map((cartItem) => ({
+      order_id: order._id,
+      cart_id: cartItem._id,
+      product_id: cartItem.product_id._id,
+      product_name: cartItem.product_id.product_name,
+      price: cartItem.product_id.price,
+      quantity: cartItem.quantity,
+      total_price:
+        cartItem.product_id.price * cartItem.quantity,
+    }));
 
     // =================================================
-    // 13. RESPONSE
+    // 11. SAVE ORDER ITEMS
+    // =================================================
+
+    await OrderItem.insertMany(orderItems);
+
+    // =================================================
+    // 12. DELETE CART ITEMS
+    // =================================================
+
+    await Cart.deleteMany({
+      _id: { $in: cart_id },
+      user_id,
+    });
+
+    // =================================================
+    // 13. SEND PUSH NOTIFICATION
+    // =================================================
+
+    if (req.user.fcm_token) {
+      await sendPushNotification(
+        req.user.fcm_token,
+        "Order Placed Successfully 🎉",
+        `Your order ${order.order_number} has been placed successfully.`,
+        {
+          order_id: order._id.toString(),
+          order_number: order.order_number,
+          type: "ORDER_CREATED",
+        }
+      );
+    }
+
+    // =================================================
+    // 14. RESPONSE
     // =================================================
 
     return responseHandler(
-
       res,
-
       201,
-
       true,
-
-      payment_method ===
-        "ONLINE"
-
+      payment_method === "ONLINE"
         ? "Online order created successfully."
-
         : "COD order created successfully.",
-
-
       {
-
-        // MongoDB order
         order,
+        items: orderItems,
 
-
-        // Multiple order items
-        items:
-          orderItems,
-
-
-        // Razorpay details
-        ...(payment_method ===
-          "ONLINE" && {
-
+        ...(payment_method === "ONLINE" && {
           razorpay: {
-
             razorpay_order_id,
-
-            amount:
-              Math.round(
-                total_amount * 100
-              ),
-
-            currency:
-              "INR",
-
+            amount: Math.round(total_amount * 100),
+            currency: "INR",
           },
-
         }),
-
       }
-
     );
-
-
   } catch (error) {
-
-    console.error(
-      "Create Order Error:",
-      error
-    );
-
+    console.error("Create Order Error:", error);
 
     return responseHandler(
-
       res,
-
       500,
-
       false,
-
       "Internal Server Error",
-
       error.message
-
     );
-
   }
-
 };
-
 // =================================================
 // GET ORDER HISTORY
 // =================================================
