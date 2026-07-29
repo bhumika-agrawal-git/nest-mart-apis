@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
     unique: true,
     trim: true,
     },
+    fcm_token: {
+    type: String,
+    default: null,
+    },
   profile_image: {
   type: String,
   default: null,

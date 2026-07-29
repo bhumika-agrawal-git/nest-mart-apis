@@ -2,10 +2,23 @@ import express from "express";
 import dotenv from "dotenv";
 import routes from "./app/routes/index.js";
 import { connectDB } from "./app/configs/dbConfigs.js";
-
+import cors from "cors"
 dotenv.config();
 
 const app = express();
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://192.168.51.23:5173"
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
