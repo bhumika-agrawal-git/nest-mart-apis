@@ -10,6 +10,69 @@ import { getPagination } from "../utils/pagination.js";
 // =======================
 // Create Category
 // =======================
+// export const createCategory = async (req, res) => {
+//   try {
+//     const { error } = categoryValidation.validate(req.body);
+
+//     if (error) {
+//       return responseHandler(
+//         res,
+//         400,
+//         false,
+//         error.details[0].message
+//       );
+//     }
+
+//     const { category_name } = req.body;
+
+//     const status =
+//       req.body.status === undefined
+//         ? true
+//         : req.body.status.trim().toLowerCase() === "true";
+
+//     const existingCategory = await Category.findOne({ category_name });
+
+//     if (existingCategory) {
+//       return responseHandler(
+//         res,
+//         400,
+//         false,
+//         "Category already exists."
+//       );
+//     }
+
+//     let image = "";
+
+//     if (req.file) {
+//       const uploadedImage = await uploadSingleImage(req.file, "categories");
+//       image = uploadedImage.secure_url;
+//     }
+
+//     const category = await Category.create({
+//       category_name,
+//       image,
+//       status,
+//     });
+
+//     return responseHandler(
+//       res,
+//       201,
+//       true,
+//       "Category created successfully.",
+//       category
+//     );
+
+//   } catch (error) {
+//     console.error(error);
+
+//     return responseHandler(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error"
+//     );
+//   }
+// };
 export const createCategory = async (req, res) => {
   try {
     const { error } = categoryValidation.validate(req.body);
@@ -28,7 +91,7 @@ export const createCategory = async (req, res) => {
     const status =
       req.body.status === undefined
         ? true
-        : req.body.status.trim().toLowerCase() === "true";
+        : req.body.status.toString().trim().toLowerCase() === "true";
 
     const existingCategory = await Category.findOne({ category_name });
 
@@ -41,11 +104,23 @@ export const createCategory = async (req, res) => {
       );
     }
 
-    let image = "";
+    // Default image object
+    let image = {
+      url: "",
+      public_id: "",
+    };
 
+    // Upload image
     if (req.file) {
-      const uploadedImage = await uploadSingleImage(req.file, "categories");
-      image = uploadedImage.secure_url;
+      const uploadedImage = await uploadSingleImage(
+        req.file,
+        "categories"
+      );
+
+      image = {
+        url: uploadedImage.secure_url,
+        public_id: uploadedImage.public_id,
+      };
     }
 
     const category = await Category.create({
@@ -63,7 +138,7 @@ export const createCategory = async (req, res) => {
     );
 
   } catch (error) {
-    console.error(error);
+    console.error("Create Category Error:", error);
 
     return responseHandler(
       res,
@@ -73,7 +148,6 @@ export const createCategory = async (req, res) => {
     );
   }
 };
-
 // =======================
 // Get Categories
 // =======================
