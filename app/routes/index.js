@@ -2,8 +2,8 @@ import userAuthRoutes from "./userroutes.js";
 import addressRoutes from "./addressRoutes.js";
 import categoryRoutes from "./categoryRoutes.js";
 import brandRoutes from "./brandRoutes.js";
-import productRoutes from "./productRoutes.js";
-
+// import productRoutes from "./productRoutes.js";
+import adminProductRoutes from "./adminProductRoutes.js";
 import publicRoutes from "./publicRoutes.js";
 import wishlistRoutes from "../routes/wishlistRoutes.js";
 import cartRoutes from "./cartRoutes.js"
@@ -25,8 +25,11 @@ const routes = (app) => {
   // Admin APIs
   app.use("/api/v1/admin/categories", categoryRoutes);
   app.use("/api/v1/admin/brands", brandRoutes);
-  app.use("/api/v1/admin/products", productRoutes);
-
+  
+app.use(
+  "/api/v1/admin/products",
+  adminProductRoutes
+);
   // Public APIs
   app.use("/api/v1/public", publicRoutes);
 
