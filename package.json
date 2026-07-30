@@ -29,7 +29,8 @@
     "otp-generator": "^4.0.1",
     "razorpay": "^2.9.8",
     "sharp": "^0.35.3",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
